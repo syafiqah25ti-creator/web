@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniStore — Sistem Manajemen Produk & CRUD Universal</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen font-sans flex flex-col transition-colors duration-200">
+
+  <!-- ==================== KOP LAPORAN (HANYA MUNCUL SAAT PRINT) ==================== -->
+  <div id="printHeader" class="hidden">
+    <div class="flex items-center justify-between border-b-2 border-black pb-4 mb-4">
+      <div>
+        <h1 id="printBrandName" class="text-2xl font-bold uppercase tracking-wide">OMNISTORE</h1>
+        <p id="printTagline" class="text-sm text-gray-600">Sistem Manajemen Katalog & Inventaris Produk</p>
+        <p class="text-xs text-gray-500 mt-1">Laporan Resmi Data Inventaris & Katalog</p>
+      </div>
+      <div class="text-right text-sm">
+        <p>Tanggal Cetak: <span id="printDate">-</span></p>
+        <p>Status Dokumen: <strong class="text-emerald-700">TERVERIFIKASI</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HEADER & NAVBAR UTAMA ==================== -->
+  <header class="sticky top-0 z-30 glass-panel border-b border-slate-200/80 dark:border-slate-800 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      
+      <!-- Brand Info -->
+      <div class="flex items-center space-x-3.5">
+        <div id="brandIconWrapper" class="w-12 h-12 rounded-2xl flex items-center justify-center bg-indigo-600 text-white shadow-md shadow-indigo-500/20">
+          <i id="brandIcon" data-lucide="shopping-bag" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 id="brandName" class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              OmniStore
+            </h1>
+            <span id="themeBadge" class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300">
+              Template Universal
+            </span>
+          </div>
+          <p id="brandTagline" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 line-clamp-1">
+            Sistem Manajemen Katalog & Inventaris Produk Serbaguna
+          </p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <!-- Preset Theme Switcher Modal Button -->
+        <button id="btnOpenPreset" class="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm transition hover:scale-105 active:scale-95" title="Ganti Tema & Topik Website Secara Instan">
+          <i data-lucide="palette" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Pilihan Tema</span>
+        </button>
+
+        <!-- Dark/Light Mode Toggle -->
+        <button id="btnToggleTheme" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm transition" title="Ganti Mode Gelap/Terang">
+          <i id="themeIcon" data-lucide="moon" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Add Data Button (CRUD Create) -->
+        <button id="btnOpenAddModal" class="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition hover:scale-105 active:scale-95">
+          <i data-lucide="plus-circle" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+          <span>Tambah <span id="btnAddEntityLabel">Produk</span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+  <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-6">
+
+    <!-- KPI / Ringkasan Statistik -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+      <!-- Total Produk -->
+      <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <p class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Total <span class="stat-entity-label">Produk</span></p>
+          <h3 id="statTotalItems" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">0</h3>
+          <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 flex items-center gap-1">
+            <i data-lucide="check-circle-2" class="w-3 h-3"></i> Terdaftar di sistem
+          </p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <i data-lucide="package" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <!-- Total Nilai Aset / Inventaris -->
+      <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <p class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Total Nilai Aset</p>
+          <h3 id="statTotalValue" class="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-1">Rp 0</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Estimasi total harga</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+          <i data-lucide="badge-dollar-sign" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <!-- Stok Perhatian / Menipis -->
+      <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <p class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Stok Menipis/Habis</p>
+          <h3 id="statLowStock" class="text-xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">0</h3>
+          <p class="text-[11px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">Perlu perhatian</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+          <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <!-- Total Kategori -->
+      <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <p class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">Total Kategori</p>
+          <h3 id="statTotalCategories" class="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">0</h3>
+          <p class="text-[11px] text-purple-600 dark:text-purple-400 font-semibold mt-0.5">Grup klasifikasi</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+          <i data-lucide="tags" class="w-6 h-6"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TOOLBAR: SEARCH, FILTER, SORT & VIEW SWITCHER ==================== -->
+    <section class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        
+        <!-- Tab Tampilan (Katalog Toko vs Tabel CRUD) -->
+        <div class="inline-flex p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl self-start">
+          <button id="btnViewCatalog" class="flex items-center space-x-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition">
+            <i data-lucide="grid" class="w-4 h-4"></i>
+            <span>Katalog Toko</span>
+          </button>
+          <button id="btnViewTable" class="flex items-center space-x-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+            <i data-lucide="table-2" class="w-4 h-4"></i>
+            <span>Tabel CRUD (Admin)</span>
+          </button>
+        </div>
+
+        <!-- Tombol Cetak & Ekspor Data -->
+        <div class="flex items-center space-x-2 self-end md:self-auto action-buttons">
+          <button id="btnExportCSV" class="inline-flex items-center space-x-1.5 px-3 py-2 text-xs sm:text-sm font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition" title="Unduh data dalam format CSV/Excel">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+            <span>Export Excel</span>
+          </button>
+          <button id="btnPrintReport" class="inline-flex items-center space-x-1.5 px-3 py-2 text-xs sm:text-sm font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition" title="Cetak laporan formal ke PDF / Printer">
+            <i data-lucide="printer" class="w-4 h-4 text-indigo-600"></i>
+            <span>Cetak Laporan</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls: Pencarian, Filter Kategori, Filter Status, Sorting -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+        <!-- Input Search Realtime -->
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input type="text" id="searchInput" placeholder="Cari nama, SKU, atau kategori..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Filter Kategori -->
+        <div class="relative">
+          <select id="filterCategory" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none">
+            <option value="ALL">Semua Kategori</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+        </div>
+
+        <!-- Filter Status Stok -->
+        <div class="relative">
+          <select id="filterStatus" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none">
+            <option value="ALL">Semua Status</option>
+            <option value="Tersedia">Tersedia</option>
+            <option value="Stok Menipis">Stok Menipis</option>
+            <option value="Habis">Habis</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+        </div>
+
+        <!-- Sortir Data -->
+        <div class="relative">
+          <select id="sortBy" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none">
+            <option value="newest">Urutan: Terbaru</option>
+            <option value="name-asc">Nama: A ke Z</option>
+            <option value="name-desc">Nama: Z ke A</option>
+            <option value="price-asc">Harga: Terendah</option>
+            <option value="price-desc">Harga: Tertinggi</option>
+            <option value="stock-desc">Stok: Terbanyak</option>
+          </select>
+          <i data-lucide="arrow-up-down" class="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAMPILAN 1: GRID KATALOG TOKO ==================== -->
+    <section id="catalogView" class="space-y-6">
+      <div id="catalogGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        <!-- Diisi secara dinamis via JavaScript -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="catalogEmptyState" class="hidden text-center py-16 bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
+        <i data-lucide="inbox" class="w-16 h-16 mx-auto text-slate-400 mb-3"></i>
+        <h4 class="text-lg font-bold text-slate-800 dark:text-slate-200">Tidak ada produk ditemukan</h4>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau ubah filter.</p>
+        <button onclick="resetFilters()" class="mt-4 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition">
+          Reset Filter
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== TAMPILAN 2: TABEL CRUD ADMIN ==================== -->
+    <section id="tableView" class="hidden">
+      <div class="glass-panel rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-slate-200 dark:border-slate-700">
+              <tr>
+                <th class="py-3.5 px-4">Produk & Gambar</th>
+                <th class="py-3.5 px-4">Kode SKU</th>
+                <th class="py-3.5 px-4">Kategori</th>
+                <th class="py-3.5 px-4">Harga Satuan</th>
+                <th class="py-3.5 px-4">Stok</th>
+                <th class="py-3.5 px-4">Status</th>
+                <th class="py-3.5 px-4 text-center no-print">Aksi (CRUD)</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-200 dark:divide-slate-800">
+              <!-- Diisi secara dinamis via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State Tabel -->
+        <div id="tableEmptyState" class="hidden text-center py-12">
+          <i data-lucide="package-open" class="w-12 h-12 mx-auto text-slate-400 mb-2"></i>
+          <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Belum ada data produk yang sesuai</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pagination -->
+    <div id="paginationContainer" class="pagination-container flex items-center justify-between pt-2 text-xs sm:text-sm text-slate-500">
+      <span id="paginationInfo">Menampilkan 1-7 dari 7 item</span>
+      <div class="flex items-center space-x-1" id="paginationButtons">
+        <!-- Diisi tombol halaman -->
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="glass-panel border-t border-slate-200 dark:border-slate-800 mt-auto py-5 text-center text-xs text-slate-500 dark:text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>© 2026 <strong id="footerBrand">OmniStore</strong>. Template Web Universal dengan Fitur CRUD Lengkap.</p>
+      <p class="text-slate-400">Bisa diganti tema apa pun via tombol <strong>"Pilihan Tema"</strong> di navbar.</p>
+    </div>
+  </footer>
+
+  <!-- ==================== FOOTER KHUSUS CETAK LAPORAN ==================== -->
+  <div id="printFooter" class="hidden">
+    <div class="flex justify-between items-end mt-12 text-xs">
+      <div>
+        <p>Dicetak otomatis melalui Sistem Manajemen Universal</p>
+        <p class="text-gray-500">Dokumen sah tanpa tanda tangan basah jika berhologram sistem.</p>
+      </div>
+      <div class="text-center w-48">
+        <p>Petugas Penanggung Jawab,</p>
+        <div class="h-16"></div>
+        <p class="font-bold underline">( Administrator )</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 1: FORM CRUD (TAMBAH / EDIT PRODUK) ==================== -->
+  <div id="crudModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <h3 id="crudModalTitle" class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-600"></i>
+          <span>Tambah Produk Baru</span>
+        </h3>
+        <button onclick="closeCrudModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Form) -->
+      <form id="crudForm" class="p-6 space-y-4 overflow-y-auto flex-grow" onsubmit="handleCrudSubmit(event)">
+        <input type="hidden" id="formMode" value="create">
+        <input type="hidden" id="formItemId" value="">
+
+        <!-- Kode / SKU & Nama -->
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Kode / SKU</label>
+            <input type="text" id="formSku" required placeholder="Contoh: PRD-001" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Nama <span class="form-entity-label">Produk</span> *</label>
+            <input type="text" id="formName" required placeholder="Nama lengkap item..." class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Kategori & Satuan -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Kategori *</label>
+            <input list="categoryList" id="formCategory" required placeholder="Pilih atau ketik kategori..." class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <datalist id="categoryList"></datalist>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Satuan Ukuran *</label>
+            <input type="text" id="formUnit" required placeholder="unit, pcs, kg, porsi..." class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Harga Satuan & Stok -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Harga Satuan (Rp) *</label>
+            <input type="number" id="formPrice" min="0" required placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Kuantitas Stok *</label>
+            <input type="number" id="formStock" min="0" required placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Status Ketersediaan -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Status Ketersediaan</label>
+          <select id="formStatus" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="Tersedia">Tersedia (In Stock)</option>
+            <option value="Stok Menipis">Stok Menipis (Limited)</option>
+            <option value="Habis">Habis (Out of Stock)</option>
+          </select>
+        </div>
+
+        <!-- Gambar: URL atau File Upload dengan Preview Instan -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Foto / Gambar Produk</label>
+          <div class="space-y-2">
+            <input type="url" id="formImageUrl" placeholder="Masukkan URL gambar (https://...)" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" oninput="previewImageInput(this.value)">
+            
+            <div class="flex items-center gap-3">
+              <label class="cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 transition">
+                <span>📁 Upload dari Komputer</span>
+                <input type="file" id="formImageFile" accept="image/*" class="hidden" onchange="handleImageFileUpload(event)">
+              </label>
+              <span class="text-[11px] text-slate-400">Atau gunakan URL online</span>
+            </div>
+
+            <!-- Preview Image Box -->
+            <div id="imagePreviewContainer" class="hidden mt-2 p-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex items-center gap-3">
+              <img id="imagePreview" src="" alt="Preview" class="w-16 h-16 object-cover rounded-lg">
+              <span class="text-xs text-slate-500">Preview foto yang akan disimpan</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deskripsi Produk -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Deskripsi Singkat</label>
+          <textarea id="formDescription" rows="2" placeholder="Tuliskan keterangan detail mengenai produk ini..." class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end space-x-2">
+          <button type="button" onclick="closeCrudModal()" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+            Batal
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transition">
+            Simpan Data
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: DETAIL PRODUK POPUP ==================== -->
+  <div id="detailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div class="relative h-60 bg-slate-100 dark:bg-slate-900">
+        <img id="detailImage" src="" alt="Detail" class="w-full h-full object-cover">
+        <button onclick="closeDetailModal()" class="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+        <span id="detailBadgeStatus" class="absolute bottom-3 left-3 px-3 py-1 rounded-full text-xs font-bold text-white bg-emerald-600">
+          Tersedia
+        </span>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <span id="detailCategory" class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Kategori</span>
+          <h2 id="detailTitle" class="text-xl font-extrabold text-slate-900 dark:text-white mt-1">Nama Produk</h2>
+          <p id="detailSku" class="text-xs text-slate-400 font-mono">Kode SKU: -</p>
+        </div>
+        <p id="detailDescription" class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          Deskripsi lengkap produk...
+        </p>
+        <div class="flex items-center justify-between p-4 rounded-xl bg-slate-100 dark:bg-slate-700/50">
+          <div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Harga Satuan</p>
+            <p id="detailPrice" class="text-xl font-black text-indigo-600 dark:text-indigo-400">Rp 0</p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-slate-500 dark:text-slate-400">Stok Tersedia</p>
+            <p id="detailStock" class="text-lg font-bold text-slate-800 dark:text-white">0 unit</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeDetailModal()" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+            Tutup
+          </button>
+          <a id="detailBtnWA" href="#" target="_blank" class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition">
+            <i data-lucide="message-circle" class="w-4 h-4"></i>
+            <span>Order via WhatsApp</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: PRESET THEME SWITCHER ==================== -->
+  <div id="presetModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <i data-lucide="palette" class="w-5 h-5 text-indigo-500"></i>
+            <span>Pilihan Tema Siap Pakai</span>
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Pilih tema di bawah jika ingin mengubah topik web secara instan dalam 1 detik.
+          </p>
+        </div>
+        <button onclick="closePresetModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Preset Grid List -->
+      <div class="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <!-- Preset Item: Umum -->
+        <div onclick="applyThemePreset('umum')" class="cursor-pointer p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 transition group">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition">
+              <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-sm">Template Umum (Netral)</h4>
+              <p class="text-xs text-slate-500">Katalog & produk serbaguna</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preset Item: Cafe -->
+        <div onclick="applyThemePreset('cafe')" class="cursor-pointer p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition group">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition">
+              <i data-lucide="coffee" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-sm">Cafe & Kedai Kopi</h4>
+              <p class="text-xs text-slate-500">Menu kopi, pastry & santapan</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preset Item: Gadget -->
+        <div onclick="applyThemePreset('gadget')" class="cursor-pointer p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition group">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition">
+              <i data-lucide="smartphone" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-sm">Gadget & Elektronik</h4>
+              <p class="text-xs text-slate-500">HP, smartwatch & aksesoris</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preset Item: Fashion -->
+        <div onclick="applyThemePreset('fashion')" class="cursor-pointer p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-rose-500 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition group">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center group-hover:scale-110 transition">
+              <i data-lucide="shirt" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-sm">Distro & Fashion</h4>
+              <p class="text-xs text-slate-500">Streetwear & pakaian distro</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preset Item: Buku -->
+        <div onclick="applyThemePreset('buku')" class="cursor-pointer p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition group">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center group-hover:scale-110 transition">
+              <i data-lucide="book-open" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-sm">Toko Buku & ATK</h4>
+              <p class="text-xs text-slate-500">Novel, buku ilmu & stationery</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preset Item: Apotek -->
+        <div onclick="applyThemePreset('apotek')" class="cursor-pointer p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-cyan-500 hover:bg-cyan-50/50 dark:hover:bg-cyan-950/20 transition group">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center group-hover:scale-110 transition">
+              <i data-lucide="activity" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-sm">Apotek & Obat Sehat</h4>
+              <p class="text-xs text-slate-500">Suplemen, vitamin & alkes</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preset Item: Inventaris -->
+        <div onclick="applyThemePreset('inventaris')" class="cursor-pointer p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/30 transition group">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center group-hover:scale-110 transition">
+              <i data-lucide="archive" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-sm">Inventaris & Gudang</h4>
+              <p class="text-xs text-slate-500">Aset kantor & logistik internal</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preset Item: Toko Buah -->
+        <div onclick="applyThemePreset('buah')" class="cursor-pointer p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition group">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition">
+              <i data-lucide="apple" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 dark:text-white text-sm">Toko Buah & Sayur</h4>
+              <p class="text-xs text-slate-500">Fresh fruit market organik</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+        <button onclick="resetToFactoryDefault()" class="text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>Reset Semua Data ke Awal</span>
+        </button>
+        <button onclick="closePresetModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold hover:bg-slate-300">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT FILES -->
+  <script src="presets.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
